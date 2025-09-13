@@ -1,17 +1,17 @@
-Feature: Basic calculator
-  As a user of the calculator
-  I want to add two numbers
-  So that I can see their sum
+Feature: Address checking
+  As a user
+  I want to check certain zip codes
+  So I receive info about that address
 
   Background:
-    Given the calculator is cleared
+    Given the API is up and ready
 
-  Scenario Outline: Add two numbers
-    When I add <a> and <b>
-    Then the result should be <sum>
+  Scenario Outline: Get an address
+    When I call the endpoint informing zip code <zipCode>, my document number <docNum> and email <email>
+    Then the response code must be <code>
 
     Examples:
-      | a | b | sum |
-      | 1 | 2 | 3   |
-      | 5 | 7 | 12  |
-      | 10 | -3 | 7 |
+      | zipCode | docNum      |  | email                   | code |
+      |         | 12345678900 |  | andre_yabiku@icloud.com | 200  |
+      |         | invalid     |  | andre_yabiku@icloud.com | 400  |
+      |         | 12345678900 |  | invalid                 | 400  |
