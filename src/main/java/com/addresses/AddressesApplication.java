@@ -1,4 +1,4 @@
-package com.example.addresses;
+package com.addresses;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
