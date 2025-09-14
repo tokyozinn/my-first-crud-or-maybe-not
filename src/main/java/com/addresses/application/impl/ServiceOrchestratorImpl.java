@@ -11,7 +11,6 @@ import com.addresses.external.persistance.dto.User;
 import lombok.Builder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Service
@@ -25,13 +24,16 @@ public class ServiceOrchestratorImpl implements ServiceOrchestrator {
     @Override
     public Mono<Address> execute(Request request) {
         User user = User.builder().cpf(request.getCpf()).email(request.getEmail()).build();
-        return repository.save(user)
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(it -> outsideAPI.getAddress(request.getZipCode()))
+        return outsideAPI.getAddress(request.getZipCode())
                 .flatMap(it -> useCase.verify(request.getCpf()))
                 .filter(bool -> bool)
                 .flatMap(it -> sensitiveDataAPI.getSensitiveData(request.getCpf()))
                 .flatMap(it -> Mono.just(new Address()))
-                .switchIfEmpty(Mono.just(new Address()));
+                .switchIfEmpty(Mono.just(new Address()))
+                .doFirst(() ->
+                        repository.save(user)
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .onErrorResume(err -> Mono.empty())
+                                .then());
     }
 }

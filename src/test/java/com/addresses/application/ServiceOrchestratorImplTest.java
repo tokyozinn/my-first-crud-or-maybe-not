@@ -44,4 +44,30 @@ public class ServiceOrchestratorImplTest {
                 .consumeNextWith(Assertions::assertNotNull)
                 .verifyComplete();
     }
+
+    @Test
+    void should_process_request_when_database_throws_exception() {
+        Repository repository = Mockito.mock(Repository.class);
+        SensitiveDataAPI sensitiveDataAPI = Mockito.mock(SensitiveDataAPI.class);
+        OutsideAPI outsideAPI = Mockito.mock(OutsideAPI.class);
+        UseCase useCase = Mockito.mock(UseCase.class);
+
+        ServiceOrchestrator serviceOrchestrator = ServiceOrchestratorImpl.builder().outsideAPI(outsideAPI).repository(repository).sensitiveDataAPI(sensitiveDataAPI).useCase(useCase).build();
+
+        when(repository.save(any())).thenReturn(Mono.error(new RuntimeException()));
+        when(sensitiveDataAPI.getSensitiveData(any())).thenReturn(Mono.just("ok"));
+        when(outsideAPI.getAddress(any())).thenReturn(Mono.just(new Address()));
+        when(useCase.verify(any())).thenReturn(Mono.just(true));
+
+        Request req = Request.builder()
+                .cpf("012")
+                .email("test@test")
+                .name("test")
+                .zipCode("12345")
+                .build();
+
+        StepVerifier.create(serviceOrchestrator.execute(req))
+                .consumeNextWith(Assertions::assertNotNull)
+                .verifyComplete();
+    }
 }
