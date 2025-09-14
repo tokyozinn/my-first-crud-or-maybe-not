@@ -7,7 +7,7 @@ public class SensitiveDataAPI {
 
     WebClient webClient = WebClient.create();
 
-    Mono<String> getSensitiveData(String cpf) {
+    public Mono<String> getSensitiveData(String cpf) {
         return webClient.get()
                 .uri("http://localhost:9090/sensitive")
                 .retrieve()

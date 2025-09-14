@@ -8,7 +8,7 @@ public class OutsideAPI {
 
     WebClient webClient = WebClient.create();
 
-    Mono<Address> getAddress(String zipCode) {
+    public Mono<Address> getAddress(String zipCode) {
         return webClient.get()
                 .uri("https://brasilapi.com.br/api/cep/v1/" + zipCode)
                 .retrieve()
