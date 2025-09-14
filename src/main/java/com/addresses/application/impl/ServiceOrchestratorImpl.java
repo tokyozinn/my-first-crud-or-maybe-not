@@ -9,6 +9,8 @@ import com.addresses.external.SensitiveDataAPI;
 import com.addresses.external.persistance.Repository;
 import com.addresses.external.persistance.dto.User;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -16,6 +18,7 @@ import reactor.core.scheduler.Schedulers;
 @Service
 @Builder
 public class ServiceOrchestratorImpl implements ServiceOrchestrator {
+    private static final Logger log = LoggerFactory.getLogger(ServiceOrchestratorImpl.class);
     private final Repository repository;
     private final SensitiveDataAPI sensitiveDataAPI;
     private final OutsideAPI outsideAPI;
@@ -25,15 +28,26 @@ public class ServiceOrchestratorImpl implements ServiceOrchestrator {
     public Mono<Address> execute(Request request) {
         User user = User.builder().cpf(request.getCpf()).email(request.getEmail()).build();
         return outsideAPI.getAddress(request.getZipCode())
-                .flatMap(it -> useCase.verify(request.getCpf()))
-                .filter(bool -> bool)
-                .flatMap(it -> sensitiveDataAPI.getSensitiveData(request.getCpf()))
-                .flatMap(it -> Mono.just(new Address()))
-                .switchIfEmpty(Mono.just(new Address()))
+                .flatMap(it -> useCase.verify(request.getCpf())
+                        .filter(bool -> bool)
+                        .flatMap(b -> sensitiveDataAPI.getSensitiveData(request.getCpf()))
+                        .flatMap(a -> Mono.just(Address.builder()
+                                .city(it.getCity())
+                                .state(it.getState())
+                                .street(it.getStreet())
+                                .neighborhood(it.getNeighborhood())
+                                .build()))
+                        .switchIfEmpty(Mono.just(Address.builder()
+                                        .city(it.getCity())
+                                        .state(it.getState())
+                                .build())))
                 .doFirst(() ->
                         repository.save(user)
                                 .subscribeOn(Schedulers.boundedElastic())
+                                .doOnSuccess(s -> log.info(String.format("Saved user %s", user)))
+                                .doOnError(err -> log.info(String.format("Error %s", err.getMessage())))
                                 .onErrorResume(err -> Mono.empty())
-                                .then());
+                                .then()
+                                .subscribe());
     }
 }
