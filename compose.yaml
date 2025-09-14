@@ -1,4 +1,21 @@
 services:
+  app:
+    build: .
+    container_name: app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+    depends_on:
+      mongo:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+      localstack:
+        condition: service_started
   mongo:
     image: mongo:7
     ports:
@@ -16,28 +33,17 @@ services:
       timeout: 5s
       retries: 20
 
-  mongo-express:
-    image: mongo-express:1.0.2
+  wiremock:
+    image: wiremock/wiremock:3.13.1
+    container_name: wiremock
+    command: ["--port","8081","--https-port","8444","--verbose"]  # HTTP 8081, HTTPS 8444
     ports:
       - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: rootpw
-      ME_CONFIG_MONGODB_SERVER: mongo
-    depends_on:
-      mongo:
-        condition: service_healthy
-
-  wiremock:
-    image: "wiremock/wiremock:latest"
-    container_name: my_wiremock
-    ports:
-      - "9090:9090"
+      - "8444:8444"     # optional; remove if you don’t need HTTPS
     volumes:
-      - ./extensions:/var/wiremock/extensions
-      - ./__files:/home/wiremock/__files
-      - ./mappings:/home/wiremock/mappings
-    entrypoint: [ "/docker-entrypoint.sh", "--global-response-templating", "--disable-gzip", "--verbose" ]
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
+      - ./wiremock/__files:/home/wiremock/__files:ro
+
 
   localstack:
     image: localstack/localstack:latest
@@ -58,3 +64,16 @@ services:
     container_name: mailhog
     ports:
       - "8025:8025"
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    ports:
+      - "8083:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: rootpw
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongo:
+        condition: service_healthy
