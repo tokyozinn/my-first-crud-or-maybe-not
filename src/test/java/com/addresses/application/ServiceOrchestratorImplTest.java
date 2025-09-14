@@ -30,7 +30,7 @@ public class ServiceOrchestratorImplTest {
 
         when(repository.save(any())).thenReturn(Mono.just(User.builder().build()));
         when(sensitiveDataAPI.getSensitiveData(any())).thenReturn(Mono.just("ok"));
-        when(outsideAPI.getAddress(any())).thenReturn(Mono.just(new Address()));
+        when(outsideAPI.getAddress(any())).thenReturn(Mono.just(Address.builder().build()));
         when(useCase.verify(any())).thenReturn(Mono.just(true));
 
         Request req = Request.builder()
@@ -56,7 +56,7 @@ public class ServiceOrchestratorImplTest {
 
         when(repository.save(any())).thenReturn(Mono.error(new RuntimeException()));
         when(sensitiveDataAPI.getSensitiveData(any())).thenReturn(Mono.just("ok"));
-        when(outsideAPI.getAddress(any())).thenReturn(Mono.just(new Address()));
+        when(outsideAPI.getAddress(any())).thenReturn(Mono.just(Address.builder().build()));
         when(useCase.verify(any())).thenReturn(Mono.just(true));
 
         Request req = Request.builder()
